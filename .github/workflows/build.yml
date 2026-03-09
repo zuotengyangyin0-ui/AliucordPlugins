@@ -30,23 +30,24 @@ jobs:
           sudo apt update
           sudo apt install -y gradle
 
-      # プラグインビルド
-      - name: Build plugins
+      # 利用可能な Gradle タスクを確認
+      - name: List available Gradle tasks
         run: |
-          cd $GITHUB_WORKSPACE/src/EditEverything || cd $GITHUB_WORKSPACE/src
-          if [ -f ./gradlew ]; then
-            chmod +x gradlew
-            ./gradlew make generateUpdaterJson
-          else
-            echo "gradlew not found, using installed gradle"
-            gradle make generateUpdaterJson
-          fi
+          cd $GITHUB_WORKSPACE/src/EditEverything
+          gradle tasks
+
+      # プラグインビルド（存在するタスクで）
+      - name: Build plugin
+        run: |
+          cd $GITHUB_WORKSPACE/src/EditEverything
+          # assemble タスクを使うのが一般的
+          gradle assemble
 
       # デバッグ: ビルド成果物を確認
       - name: Debug build outputs
         run: |
-          echo "Listing all files in src:"
-          find $GITHUB_WORKSPACE/src -type f
+          echo "Listing all files in EditEverything:"
+          find $GITHUB_WORKSPACE/src/EditEverything -type f
 
       # artifacts フォルダに成果物を集める
       - name: Collect artifacts

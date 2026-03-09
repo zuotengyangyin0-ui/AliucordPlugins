@@ -1,4 +1,4 @@
-name: Collect Plugin Artifacts
+name: Build and Collect Aliucord Plugin
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  collect-artifacts:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,20 +17,55 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           path: "src"
 
-      # デバッグ: どんなファイルがあるか確認
-      - name: List all files
-        run: |
-          echo "Listing all files under src:"
-          find $GITHUB_WORKSPACE/src -type f
+      # JDK 21 セットアップ
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
 
-      # artifacts フォルダに既存の zip と updater.json を集める
-      - name: Collect existing artifacts
+      # Gradle を runner にインストール（gradlew がなければ）
+      - name: Install Gradle
+        run: |
+          sudo apt update
+          sudo apt install -y gradle
+
+      # ビルド可能な Gradle タスクを検索
+      - name: Find Gradle wrapper or tasks
+        run: |
+          cd $GITHUB_WORKSPACE/src
+          find EditEverything -name "gradlew" -exec dirname {} \; | while read dir; do
+            echo "Found gradlew in $dir"
+          done
+          echo "Listing tasks in EditEverything root:"
+          cd $GITHUB_WORKSPACE/src/EditEverything
+          gradle tasks || true
+
+      # プラグインビルド
+      - name: Build plugin
+        run: |
+          cd $GITHUB_WORKSPACE/src/EditEverything
+          if [ -f ./gradlew ]; then
+            chmod +x gradlew
+            ./gradlew buildPlugin || ./gradlew assemblePlugin
+          else
+            gradle buildPlugin || gradle assemblePlugin
+          fi
+
+      # デバッグ: ビルド成果物確認
+      - name: Debug build outputs
+        run: |
+          echo "Listing all files in EditEverything:"
+          find $GITHUB_WORKSPACE/src/EditEverything -type f
+
+      # artifacts フォルダに成果物を集める
+      - name: Collect artifacts
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
           find $GITHUB_WORKSPACE/src -name "*.zip" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
           find $GITHUB_WORKSPACE/src -name "updater.json" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
 
-      # artifacts をアップロード
+      # artifacts アップロード
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

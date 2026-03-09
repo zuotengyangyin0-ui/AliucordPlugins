@@ -10,14 +10,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # リポジトリのチェックアウト
+      # リポジトリをチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           path: "src"
 
-      # JDK 21 セットアップ
+      # JDK 21 をセットアップ
       - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
@@ -28,27 +28,29 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # ビルド実行
+      # プラグインビルド
       - name: Build plugins
         run: |
-          cd $GITHUB_WORKSPACE/src
+          cd $GITHUB_WORKSPACE/src/EditEverything
           chmod +x gradlew
           ./gradlew make generateUpdaterJson
 
-      # デバッグ: どこにファイルがあるか確認
+      # デバッグ: ビルド成果物を確認
       - name: Debug build outputs
         run: |
-          echo "Listing all files in src:"
-          find $GITHUB_WORKSPACE/src -type f
+          echo "Listing all files in EditEverything:"
+          find $GITHUB_WORKSPACE/src/EditEverything -type f
 
-      # artifacts フォルダに成果物を集める（存在するファイルのみ）
+      # artifacts フォルダに成果物を集める
       - name: Collect artifacts
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
+          # 全ての zip ファイルをコピー
           find $GITHUB_WORKSPACE/src -name "*.zip" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
+          # updater.json があればコピー
           find $GITHUB_WORKSPACE/src -name "updater.json" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
 
-      # artifacts をアップロード
+      # artifacts を GitHub Actions にアップロード
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

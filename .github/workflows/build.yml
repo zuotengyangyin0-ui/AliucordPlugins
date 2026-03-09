@@ -17,35 +17,28 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           path: "src"
 
-      # JDK 21 をセットアップ
+      # JDK 21 セットアップ
       - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: 21
           distribution: temurin
 
-      # Gradle セットアップ
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      # gradlew の場所を確認
-      - name: Find gradlew
+      # Gradle を runner にインストール
+      - name: Install Gradle
         run: |
-          echo "Searching for gradlew..."
-          find $GITHUB_WORKSPACE/src -name "gradlew"
+          sudo apt update
+          sudo apt install -y gradle
 
-      # プラグインビルド（gradlew があれば wrapper、なければ gradle）
+      # プラグインビルド
       - name: Build plugins
         run: |
-          BUILD_DIR=$(find $GITHUB_WORKSPACE/src -name "gradlew" -exec dirname {} \;)
-          if [ -n "$BUILD_DIR" ]; then
-            echo "Using gradlew in $BUILD_DIR"
-            cd "$BUILD_DIR"
+          cd $GITHUB_WORKSPACE/src/EditEverything || cd $GITHUB_WORKSPACE/src
+          if [ -f ./gradlew ]; then
             chmod +x gradlew
             ./gradlew make generateUpdaterJson
           else
-            echo "gradlew not found, trying gradle command..."
-            cd $GITHUB_WORKSPACE/src/EditEverything || cd $GITHUB_WORKSPACE/src
+            echo "gradlew not found, using installed gradle"
             gradle make generateUpdaterJson
           fi
 
@@ -62,7 +55,7 @@ jobs:
           find $GITHUB_WORKSPACE/src -name "*.zip" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
           find $GITHUB_WORKSPACE/src -name "updater.json" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
 
-      # artifacts をアップロード
+      # artifacts を GitHub Actions にアップロード
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

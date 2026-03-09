@@ -28,29 +28,41 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # プラグインビルド
+      # gradlew の場所を確認
+      - name: Find gradlew
+        run: |
+          echo "Searching for gradlew..."
+          find $GITHUB_WORKSPACE/src -name "gradlew"
+
+      # プラグインビルド（gradlew があれば wrapper、なければ gradle）
       - name: Build plugins
         run: |
-          cd $GITHUB_WORKSPACE/src/EditEverything
-          chmod +x gradlew
-          ./gradlew make generateUpdaterJson
+          BUILD_DIR=$(find $GITHUB_WORKSPACE/src -name "gradlew" -exec dirname {} \;)
+          if [ -n "$BUILD_DIR" ]; then
+            echo "Using gradlew in $BUILD_DIR"
+            cd "$BUILD_DIR"
+            chmod +x gradlew
+            ./gradlew make generateUpdaterJson
+          else
+            echo "gradlew not found, trying gradle command..."
+            cd $GITHUB_WORKSPACE/src/EditEverything || cd $GITHUB_WORKSPACE/src
+            gradle make generateUpdaterJson
+          fi
 
       # デバッグ: ビルド成果物を確認
       - name: Debug build outputs
         run: |
-          echo "Listing all files in EditEverything:"
-          find $GITHUB_WORKSPACE/src/EditEverything -type f
+          echo "Listing all files in src:"
+          find $GITHUB_WORKSPACE/src -type f
 
       # artifacts フォルダに成果物を集める
       - name: Collect artifacts
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
-          # 全ての zip ファイルをコピー
           find $GITHUB_WORKSPACE/src -name "*.zip" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
-          # updater.json があればコピー
           find $GITHUB_WORKSPACE/src -name "updater.json" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
 
-      # artifacts を GitHub Actions にアップロード
+      # artifacts をアップロード
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

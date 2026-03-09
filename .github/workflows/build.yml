@@ -35,20 +35,20 @@ jobs:
           chmod +x gradlew
           ./gradlew make generateUpdaterJson
 
-      # デバッグ: 生成物の存在を確認
+      # デバッグ: どこにファイルがあるか確認
       - name: Debug build outputs
         run: |
-          echo "Listing build outputs:"
-          ls -R $GITHUB_WORKSPACE/src
+          echo "Listing all files in src:"
+          find $GITHUB_WORKSPACE/src -type f
 
-      # artifacts フォルダに成果物を集める
+      # artifacts フォルダに成果物を集める（存在するファイルのみ）
       - name: Collect artifacts
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
-          cp $(find $GITHUB_WORKSPACE/src -name "*.zip") $GITHUB_WORKSPACE/artifacts/ || echo "No zip files found"
-          cp $(find $GITHUB_WORKSPACE/src -name "updater.json") $GITHUB_WORKSPACE/artifacts/ || echo "No updater.json found"
+          find $GITHUB_WORKSPACE/src -name "*.zip" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
+          find $GITHUB_WORKSPACE/src -name "updater.json" -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
 
-      # アップロード
+      # artifacts をアップロード
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
